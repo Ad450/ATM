@@ -4,6 +4,7 @@ import static com.mongodb.MongoClientSettings.getDefaultCodecRegistry;
 import static org.bson.codecs.configuration.CodecRegistries.fromProviders;
 import static org.bson.codecs.configuration.CodecRegistries.fromRegistries;
 
+import com.github.shyiko.dotenv.guice.DotEnvValue;
 import com.google.inject.Inject;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
@@ -15,27 +16,38 @@ import org.levelingup.config.Config;
 
 import java.util.Optional;
 
-public class DatabaseConfig implements IDatabaseConfig{
-    public Config config;
+public class DatabaseConfig implements IDatabaseConfig {
     public Optional<MongoDatabase> mongoDatabase;
-    @Inject
-    public DatabaseConfig(Config config){
-       this.config = config;
-       this.config.loadConfigurations();
+    public String databaseURL;
+    public String databaseName;
 
-       this.mongoDatabase = configure();
+    public void setDatabaseName(Optional<String> databaseName) {
+        this.databaseName = databaseName.orElse("");
     }
+
+    public void setDatabaseURL(Optional<String> databaseURL) {
+        this.databaseURL = databaseURL.orElse("");
+    }
+
+    @Inject
+    public DatabaseConfig() {
+        this.mongoDatabase = configure();
+
+    }
+
     public Optional<MongoDatabase> configure() {
         CodecProvider pojoCodecProvider = PojoCodecProvider.builder().automatic(true).build();
         CodecRegistry pojoCodecRegistry = fromRegistries(getDefaultCodecRegistry(), fromProviders(pojoCodecProvider));
 
-        final String uri = config.properties.getProperty("DATABASE_URL");
-        final String databaseName = config.properties.getProperty("DATABASE_NAME");
+        if(databaseURL == null || databaseName == null){
+            System.out.println("The database url is "+ databaseURL);
+            System.out.println("The database url is "+ databaseName);
+        }
 
-        try (MongoClient mongoClient = MongoClients.create(uri)){
+        try (MongoClient mongoClient = MongoClients.create(databaseURL)) {
             MongoDatabase database = mongoClient.getDatabase(databaseName).withCodecRegistry(pojoCodecRegistry);
             return Optional.of(database);
-        } catch  (Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
             return Optional.empty();
         }
